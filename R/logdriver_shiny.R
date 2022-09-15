@@ -79,6 +79,7 @@ server <- function(input, output, session) {
                    
                    message("updating table every 5 seconds")
                    log_data$unfiltered <- dplyr::tbl(connection, input$select_table) %>%
+                     dplyr::arrange(dplyr::desc(datetime)) %>%
                      dplyr::collect() %>%
                      dplyr::mutate(datetime = lubridate::as_datetime(datetime)) #, tz = "UCT")) #%>% lubridate::with_tz(input$select_timezone))
                    
@@ -92,6 +93,7 @@ server <- function(input, output, session) {
                  
                  message("updating table: user change")
                  log_data$unfiltered <- dplyr::tbl(connection, input$select_table) %>%
+                   dplyr::arrange(dplyr::desc(datetime)) %>%
                    dplyr::collect() %>%
                    dplyr::mutate(datetime = lubridate::as_datetime(datetime)) #, tz = "UCT")) #%>% lubridate::with_tz(input$select_timezone))
                  log_data$filtered <- log_data$unfiltered

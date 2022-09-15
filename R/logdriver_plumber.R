@@ -5,7 +5,9 @@ library(RSQLite)
 
 #* Plot out data from the iris dataset
 #* @get /append_log
-append_log <- function(appname, user = NA, event = NA, description = NA){
+append_log <- function(appname, user = NA, event = NA, description = NA, level = c("info", "warn", "error", "critical")){
+  
+  level <- match.arg(level, level)
   
   # make sure we use right directory. if we're testing, use project dir;
   # if we're running the API, use the project dir also! not R dir!
@@ -13,9 +15,11 @@ append_log <- function(appname, user = NA, event = NA, description = NA){
   if (!interactive()) wd <- "../"
   
   # if there is no log file yet, create one
-  if (!file.exists(paste0(wd,"logs/logs.sqlite"))) {
+  #if (!file.exists(paste0(wd,"logs/logs.sqlite"))) {}
+  if (!dir.exists(paste0(wd, "logs"))) {
     dir.create(paste0(wd,"logs"))
   }
+  
   
   # open SQLite connection, creating file if necessary
   connection <- RSQLite::dbConnect(RSQLite::SQLite(), paste0(wd, "logs/logs.sqlite"))
@@ -25,7 +29,7 @@ append_log <- function(appname, user = NA, event = NA, description = NA){
   table_names <- RSQLite::dbListTables(connection)
   
   if (!appname %in% table_names){
-    empty_row <- dplyr::tribble(~datetime, ~user, ~event, ~description)
+    empty_row <- dplyr::tribble(~datetime, ~level, ~user, ~event, ~description)
     RSQLite::dbCreateTable(connection, name = appname, empty_row)
   }
   
@@ -33,6 +37,7 @@ append_log <- function(appname, user = NA, event = NA, description = NA){
   
   # format the log entry
   log_entry <- dplyr::tibble(datetime = as.character(Sys.time(), tz = "UCT", usetz = TRUE),
+                             level = level,
                              user = user,
                              event = event,
                              description = description)
@@ -45,7 +50,7 @@ append_log <- function(appname, user = NA, event = NA, description = NA){
   
   #RSQLite::dbWriteTable()
   # logging for logs :)
-  log_text <- sprintf("%s | %s | %s | %s | %s", log_entry$datetime, appname, log_entry$user, log_entry$event, log_entry$description)
+  log_text <- sprintf("%s | %s | %s | %s | %s | %s", log_entry$datetime, level, appname, log_entry$user, log_entry$event, log_entry$description)
   message(log_text)
   
   # disconnect
@@ -87,7 +92,19 @@ get_logs <- function(appname){
   db_logs <- dplyr::tbl(connection, appname)
   
   db_logs %>%
+    dplyr::arrange(dplyr::desc(datetime)) %>%
     dplyr::collect() %>%
     return()
   
 }
+
+
+# create some test log data
+# append_log("testapp", "you!", "read some logs", "have fun :)")
+# append_log("testapp", "you!", "read some logs", "for persistent log storage, consider mounting an external volume to the container.")
+# append_log("testapp", "you!", "read some logs", "so if you're running this in Docker, any new logs will disappear when your container is removed.")
+# append_log("testapp", "you!", "read some logs", "it's stored in a SQLite file in the folder ./logs .")
+# append_log("testapp", "you!", "read some logs", "this is the built-in test set of log data.")
+# append_log("testapp", "you!", "got logdriver working!", "if you're seeing this, congratulations!")
+# 
+# get_logs("testapp")
