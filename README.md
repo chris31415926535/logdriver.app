@@ -5,8 +5,9 @@
 
 <img src="logo/logdriver_hex.png" width="100px" />
 
-Logdriver is a simple free log-management tool for use in small
-projects.
+Logdriver is a simple free log-management tool for small projects.
+
+*This is an early-stage work in progress.*
 
 # What’s it for?
 
@@ -30,4 +31,46 @@ simply and freely.
 
 # How does it work?
 
-# Example
+Logdriver is written entirely in R, and has three main pieces:
+
+-   A SQLite database that stores log information;
+-   A Plumber API for adding and retrieving logs; and,
+-   A Shiny web application for viewing and analyzing log data.
+
+# How do I use it?
+
+You can spin up each of the three pieces individually, or you can deploy
+Logdriver using a single Docker image. This image runs *both*
+processes–the API and the web app–which is, er, not always a best
+practice, but gets the job done. (I mentioned this was for small
+projects, right?) Internally, the web app runs on port 8080 and the API
+runs on port 8000, so you can map those two ports to whatever you like
+when you spin up a container.
+
+Here’s an example:
+
+`docker run -d -p 8000:8000 -p 8080:8080 logdriver`
+
+If you run it using that command, it will use an SQLite server
+*internal* to the container. **This means that if your Docker container
+disappears, you’ll lose your log data.**
+
+For permanent log starage, you can mount a system folder to the Docker
+image at `/root/logs` when you start it:
+
+`docker run -d -p 8000:8000 -p 8080:8080 --mount type=bind,source=/path/to/your/local/folder,target=/root/logs logdriver`
+
+If you’re deploying the Docker image to a cloud provider, look for
+instructions to mount a volume.
+
+# Future plans
+
+*Right now, Logdriver is just barely a minimum viable product!* Planned
+improvements include:
+
+-   Better design and analytics for the Shiny app.
+-   Log event levels (e.g. info/warn/error/critical).
+-   Basic alerts (e.g. send email if an application logs a critical
+    error).
+-   (Optional?) Bearer authentication for the API.
+-   (Optional?) Login/password-protection for the Shiny app.
