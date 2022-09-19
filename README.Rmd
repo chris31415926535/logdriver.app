@@ -32,11 +32,19 @@ Logdriver is designed to meet a small project's log-management needs simply and 
 
 # How does it work?
 
-Logdriver is written entirely in R, and has three main pieces:
+Logdriver is written entirely in R, and has two main pieces:
+
+* A web app for storing, updating, and analyzing logs (**this GitHub repo is for the web app!**); and,
+* An R package for communicating with the web app 
+
+The web app has three main parts:
 
 * A SQLite database that stores log information;
 * A Plumber API for adding and retrieving logs; and,
 * A Shiny web application for viewing and analyzing log data.
+
+[Learn more about the R package here.](https://github.com/chris31415926535/logdriver)
+
 
 
 # How do I use it?

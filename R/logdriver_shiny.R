@@ -6,6 +6,8 @@
 # perhaps get logs from logdr
 
 library(shiny)
+library(shinydashboard)
+library(shinydashboardPlus)
 library(dplyr)
 library(dbplyr)
 library(DBI)
@@ -15,32 +17,39 @@ library(plotly)
 library(plumber)
 library(lubridate)
 
-ui <- fluidPage(
-  sidebarLayout(
-    sidebarPanel = sidebarPanel(p("asdf"),
-                                selectInput("select_table",
-                                            "Application",
-                                            choices = "Loading..")
-                                
-                                ,selectInput("select_timerange",
-                                             "Time Range",
-                                             choices = c("Hour",
-                                                         "Day",
-                                                         "Week",
-                                                         "Month",
-                                                         "Year"))
-                                # selectInput("select_timezone",
-                                # "Time Zone",
-                                # choices = c("America/Toronto", "UCT")),
+ui <- #fluidPage(
+  shinydashboardPlus::dashboardPage(
+    header = shinydashboard::dashboardHeader(title = "logdriver"),
+    
+    sidebar = shinydashboard::dashboardSidebar(
+      p("asdf"),
+      selectInput("select_table",
+                  "Application",
+                  choices = "Loading..")
+      
+      ,selectInput("select_timerange",
+                   "Time Range",
+                   choices = c("Hour",
+                               "Day",
+                               "Week",
+                               "Month",
+                               "Year"))
     ),
     
-    mainPanel = mainPanel(fluidRow(p("plot over time!"),
-                                   plotly::plotlyOutput("log_plot")),
-                          fluidRow(
-                            DT::dataTableOutput("log_table")
-                          ))
+    body = shinydashboard::dashboardBody(
+      shinydashboard::box(#title = "plot over time!",
+                          width = 12,
+                          height="430px",
+                          plotly::plotlyOutput("log_plot")),
+      shinydashboard::box(title = "Log Details",
+                          width = 12,
+                          DT::dataTableOutput("log_table")
+      )
+    ),
+    
+    footer = shinydashboardPlus::dashboardFooter(left = "Belanger Analytics Inc.")
   )
-)
+
 
 server <- function(input, output, session) {
   
@@ -127,11 +136,12 @@ server <- function(input, output, session) {
     plotly::ggplotly(theplot)
   })
   
-  output$log_table <- DT::renderDataTable({
-    log_data$filtered
-    
-    
-  })
+  output$log_table <- DT::renderDataTable(
+    DT::datatable(log_data$filtered, 
+                  options = list(dom = "tfp"),
+                  rownames = FALSE) %>%
+      DT::formatStyle(columns = 1:ncol(log_data$filtered), fontSize = '80%', lineHeight='70%')
+  )
 }
 
 shinyApp(ui, server)
