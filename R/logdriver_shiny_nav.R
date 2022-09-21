@@ -35,14 +35,14 @@ ui <- #fluidPage(
                         
                         ,selectInput("select_timeunit",
                                      "Time Unit",
-                                     choices = c("Seconds",
-                                                 "Minutes",
-                                                 "15 Minutes",
-                                                 "Hours",
-                                                 "Days",
-                                                 "Weeks",
-                                                 "Months",
-                                                 "Years"))
+                                     choices = c("Seconds" = "sec",
+                                                 "Minutes" = "min",
+                                                 "15 Minutes" = "15 min",
+                                                 "Hours" = "hour",
+                                                 "Days" = "day",
+                                                 "Weeks" = "week",
+                                                 "Months" = "month",
+                                                 "Years" = "year"))
                         
                       )
                       ,
@@ -178,7 +178,9 @@ server <- function(input, output, session) {
       
       theplot <- ggplot2::ggplot(data = forplot,
                                  mapping = ggplot2::aes(x=datetime_floor, y = n)) +
-        ggplot2::geom_col() 
+        ggplot2::geom_col() + #width = 0.9, fill = "#123456") +
+       # ggplot2::scale_x_datetime(date_breaks = timeunit) +
+        ggplot2::theme_minimal()
       
     } # end if is finite timerange
     
