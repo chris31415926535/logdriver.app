@@ -68,7 +68,6 @@ If you're deploying the Docker image to a cloud provider, look for instructions 
 *Right now, Logdriver is just barely a minimum viable product!* Planned improvements include:
 
 * Better design and analytics for the Shiny app.
-* Log event levels (e.g. info/warn/error/critical).
 * Basic alerts (e.g. send email if an application logs a critical error).
 * (Optional?) Bearer authentication for the API.
 * (Optional?) Login/password-protection for the Shiny app.

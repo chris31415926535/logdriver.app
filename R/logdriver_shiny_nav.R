@@ -17,67 +17,73 @@ library(plotly)
 library(plumber)
 library(lubridate)
 
-ui <- #fluidPage(
-  #  shiny::navbarMenu(
-  
-  
-  shiny::navbarPage(
-    title = "Logdriver",
-    shiny::tabPanel(title = "Overview",
-                    
-                    shiny::sidebarLayout(
-                      shiny::sidebarPanel(
-                        width = 2,
-                        
-                        selectInput("select_table",
-                                    "Application",
-                                    choices = "Loading..")
-                        
-                        ,selectInput("select_timeunit",
-                                     "Time Unit",
-                                     choices = c("Seconds" = "sec",
-                                                 "Minutes" = "min",
-                                                 "15 Minutes" = "15 min",
-                                                 "Hours" = "hour",
-                                                 "Days" = "day",
-                                                 "Weeks" = "week",
-                                                 "Months" = "month",
-                                                 "Years" = "year"))
-                        
-                      )
-                      ,
+app_version <- "0.0.1.9000"
+
+ui <- shiny::navbarPage(
+  title = paste0("Logdriver v", app_version),
+  shiny::tabPanel(title = "Analysis",
+                  
+                  shiny::sidebarLayout(
+                    shiny::sidebarPanel(
+                      width = 2,
                       
-                      shiny::mainPanel(
-                        width = 10,
-                        
-                        fluidRow(#title = "plot over time!",
-                          width = 12,
-                          height="430px",
-                          plotly::plotlyOutput("log_plot")),
-                        fluidRow(title = "Log Details",
-                                 width = 12,
-                                 DT::dataTableOutput("log_table")
-                        )
+                      selectInput("select_table",
+                                  "Application",
+                                  choices = "Loading..")
+                      
+                      ,selectInput("select_timeunit",
+                                   "Time Unit",
+                                   choices = c("Seconds" = "sec",
+                                               "Minutes" = "min",
+                                               "15 Minutes" = "15 min",
+                                               "Hours" = "hour",
+                                               "Days" = "day",
+                                               "Weeks" = "week",
+                                               "Months" = "month",
+                                               "Years" = "year"))
+                      
+                    )
+                    ,
+                    
+                    shiny::mainPanel(
+                      width = 10,
+                      
+                      fluidRow(#title = "plot over time!",
+                        width = 12,
+                        height="430px",
+                        plotly::plotlyOutput("log_plot")),
+                      fluidRow(title = "Log Details",
+                               width = 12,
+                               DT::dataTableOutput("log_table")
                       )
                     )
-    )
-    
-    ,tabPanel(title = "Admin",
-              shiny::fluidRow(h1("Delete Log File"),
-                              shiny::selectInput("select_deletelogs",
-                                                 "Application Log to Delete",
-                                                 choices = "Loading...")),
-              
-              shiny::actionButton("button_deletelogs",
-                                  label = "Delete Logs")
-              
-    )
-    
-    ,tabPanel(title = "About",
-              p("This is the jankiest work in progress imaginable. It has basic functionality I need for now."),
-              p("I'm going to update it as I need to..."))
-    
+                  )
   )
+  
+  ,tabPanel(title = "Admin",
+            shiny::fluidRow(h1("Delete User Logs"),
+                            shiny::selectInput("select_deleteuserlogs_app",
+                                               "Application",
+                                               choices = "Loading..."),
+                            shiny::textInput("select_deleteuserlogs_user",
+                                             "User"),
+                            shiny::actionButton("button_deleteuserlogs",
+                                                label = "Delete User Logs")),
+            shiny::fluidRow(h1("Delete Application Logs"),
+                            shiny::selectInput("select_deletelogs",
+                                               "Application Log to Delete",
+                                               choices = "Loading...")),
+            
+            shiny::actionButton("button_deletelogs",
+                                label = "Delete Application Logs")
+            
+  )
+  
+  ,tabPanel(title = "About",
+            p("This is the jankiest work in progress imaginable. It has basic functionality I need for now."),
+            p("I'm going to update it as I need to..."))
+  
+)
 
 
 server <- function(input, output, session) {
@@ -104,6 +110,9 @@ server <- function(input, output, session) {
                     choices = table_names)
   
   updateSelectInput(inputId = "select_deletelogs",
+                    choices = table_names)
+  
+  updateSelectInput(inputId = "select_deleteuserlogs_app",
                     choices = table_names)
   
   log_data <- reactiveValues(unfiltered = dplyr::tibble(),
@@ -179,7 +188,7 @@ server <- function(input, output, session) {
       theplot <- ggplot2::ggplot(data = forplot,
                                  mapping = ggplot2::aes(x=datetime_floor, y = n)) +
         ggplot2::geom_col() + #width = 0.9, fill = "#123456") +
-       # ggplot2::scale_x_datetime(date_breaks = timeunit) +
+        # ggplot2::scale_x_datetime(date_breaks = timeunit) +
         ggplot2::theme_minimal()
       
     } # end if is finite timerange
@@ -252,6 +261,66 @@ server <- function(input, output, session) {
                       choices = table_names)
     
     message(input$select_table)
+    
+    log_data <- reactiveValues(unfiltered = dplyr::tibble(),
+                               filtered = dplyr::tibble())
+    
+    shiny::removeModal()
+    
+  }
+  )
+  
+  # DELETE USER LOGS WITHIN AN APPLICATION
+  # Show modal when user says they want to delete USER application log
+  observeEvent(input$button_deleteuserlogs, {
+    message("clicked delete user logs button")
+    
+    appname_to_delete <- input$select_deleteuserlogs_app
+    username_to_delete <- input$select_deleteuserlogs_user
+    
+    shiny::showModal(
+      shiny::modalDialog(title = "Really delete user logs??",
+                         p(sprintf("This will PERMANENTLY delete the logs for username %s the application %s.", username_to_delete, appname_to_delete)),
+                         p("Are you sure you want to do this?"),
+                         footer = tagList(
+                           modalButton("No, I really don't"),
+                           actionButton("button_deleteuserlogs_confirm", "Yes, I really do")
+                         )
+      )
+    )
+    
+  })
+  
+  # If they click they want to delete the logs for sure, do it
+  # then re-update the select inputs so that nothing is messed up
+  # NOTE! This is messy and should be done in a function since it's repeated
+  observeEvent(input$button_deleteuserlogs_confirm,{
+    appname_to_delete <- input$select_deleteuserlogs_app
+    username_to_delete <- input$select_deleteuserlogs_user
+    
+    
+    message(sprintf("Deleting log for user %s for app %s", username_to_delete, appname_to_delete))
+    
+    
+    
+    # LOGIC TO DELETE USER LOGS GOESHERE
+    # generate SQL command by creating a SELECT command and replacing it with DELETE
+    # could be done with raw SQL, should just have form  "DELETE \nFROM `deleteme`\nWHERE (`user` = 'chris')"
+    # because the query is very simple
+    
+    # https://stackoverflow.com/questions/70395226/dbplyr-delete-row-from-a-table-in-database
+    
+    logfile <- dplyr::tbl(connection, appname_to_delete)
+    
+    logs_to_delete <- dplyr::filter(logfile, user == username_to_delete)
+    
+    # FIXME TODO! Should do basic SQL injection check here! In the meantime
+    # though this is already on the admin page so likely no extra risk..
+    query <- dbplyr::sql_render(logs_to_delete) %>%
+      as.character() %>%
+      gsub(pattern = "SELECT *", replacement = "DELETE ", fixed = TRUE)
+    
+    DBI::dbExecute(connection, query)
     
     log_data <- reactiveValues(unfiltered = dplyr::tibble(),
                                filtered = dplyr::tibble())

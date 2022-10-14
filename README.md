@@ -78,7 +78,6 @@ instructions to mount a volume.
 improvements include:
 
 -   Better design and analytics for the Shiny app.
--   Log event levels (e.g. info/warn/error/critical).
 -   Basic alerts (e.g. send email if an application logs a critical
     error).
 -   (Optional?) Bearer authentication for the API.
