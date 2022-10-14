@@ -40,21 +40,34 @@ ui <- shiny::navbarPage(
                                                "Days" = "day",
                                                "Weeks" = "week",
                                                "Months" = "month",
-                                               "Years" = "year"))
+                                               "Years" = "year"), 
+                                   selected = "day")
                       
                     )
                     ,
                     
                     shiny::mainPanel(
                       width = 10,
-                      
-                      fluidRow(#title = "plot over time!",
-                        width = 12,
-                        height="430px",
-                        plotly::plotlyOutput("log_plot")),
-                      fluidRow(title = "Log Details",
-                               width = 12,
-                               DT::dataTableOutput("log_table")
+                      shiny::tabsetPanel(
+                        shiny::tabPanel(title = "Events",
+                                        fluidRow(
+                                          width = 12,
+                                          height="430px",
+                                          plotly::plotlyOutput("log_plot")),
+                                        fluidRow(title = "Log Details",
+                                                 width = 12,
+                                                 DT::dataTableOutput("log_table"))
+                        ),
+                        shiny::tabPanel(title = "Users",
+                                        fluidRow(
+                                          width = 12,
+                                          height = "430px",
+                                          plotly::plotlyOutput("users_plot")),
+                                        fluidRow(title = "User Details",
+                                                 column(width = 6, "Users per day"),
+                                                 column(width = 6, "Top users")
+                                                 )
+                                        )
                       )
                     )
                   )
@@ -167,6 +180,34 @@ server <- function(input, output, session) {
   
   
   
+  output$users_plot <- plotly::renderPlotly({
+    req(input$select_timeunit)
+    timerange <- max(log_data$filtered$datetime) - min(log_data$filtered$datetime)
+    theplot <- ggplot2::ggplot()
+    
+    if (is.finite(timerange)) {
+      
+      timeunit <- tolower(input$select_timeunit)#"15 minutes"
+      
+      # timeunit <- "15 minutes"
+      
+      forplot <-  log_data$filtered %>%
+        dplyr::mutate(datetime_floor = lubridate::floor_date(datetime, unit = timeunit)) %>%
+        dplyr::distinct(datetime_floor, user) %>%
+        dplyr::group_by(datetime_floor) %>%
+        dplyr::count()
+
+      theplot <- ggplot2::ggplot(data = forplot,
+                                 mapping = ggplot2::aes(x=datetime_floor, y = n)) +
+        ggplot2::geom_col(fill = "#123456") + #width = 0.9, fill = "#123456") +
+        # ggplot2::scale_x_datetime(date_breaks = timeunit) +
+        ggplot2::theme_minimal()
+      
+    } # end if is finite timerange
+    
+    plotly::ggplotly(theplot)
+  })
+  
   
   output$log_plot <- plotly::renderPlotly({
     #
@@ -187,7 +228,7 @@ server <- function(input, output, session) {
       
       theplot <- ggplot2::ggplot(data = forplot,
                                  mapping = ggplot2::aes(x=datetime_floor, y = n)) +
-        ggplot2::geom_col() + #width = 0.9, fill = "#123456") +
+        ggplot2::geom_col(fill = "#123456") + #width = 0.9, fill = "#123456") +
         # ggplot2::scale_x_datetime(date_breaks = timeunit) +
         ggplot2::theme_minimal()
       
